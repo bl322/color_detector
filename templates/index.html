@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Rainbow Color Detector</title>
+</head>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: Arial, sans-serif;
+  }
+
+  h1 {
+    margin-bottom: 0.5em;
+  }
+
+  #result {
+    margin-bottom: 1em;
+  }
+
+  #canvas-container {
+    position: relative;
+    width: 640px;
+    height: 480px;
+  }
+
+  #canvas,
+  #overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  #loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: gray;
+  }
+
+  #detect {
+    margin-top: 1em;
+  }
+</style>
+
+<body>
+  <h1>Rainbow Color Detector</h1>
+  <p >Use rainbow-colored objects to detect colors. Click the "Detect" button and aim the object at the center of the black dot to recognize its color.</p >
+  <div id="canvas-container">
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <canvas id="overlay" width="640" height="480"></canvas>
+    <div id="loading">Loading...</div>
+    <video id="video" width="640" height="480" autoplay></video>
+  </div>
+  <div>
+    <button id="detect">Detect Color</button>
+    <p id="result"></p >
+  </div>
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const overlay = document.getElementById('overlay');
+    const detectButton = document.getElementById('detect');
+    const result = document.getElementById('result');
+    const loading = document.getElementById('loading');
+    navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      video.srcObject = stream;
+      video.play();
+      canvas.style.display = 'block';
+      loading.style.display = 'none';
+    })
+    .catch(error => {
+      console.error(error);
+    });
+  
+  function drawRedCircle() {
+      const ctx = overlay.getContext('2d');
+      const cx = overlay.width / 2;
+      const cy = overlay.height / 2;
+      const radius = 5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = 'red';
+      ctx.fill();
+  }
+  
+  detectButton.addEventListener('click', () => {
+    canvas.style.display = 'block';
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob(blob => {
+      canvas.style.display = 'none';
+      const formData = new FormData();
+      formData.append('image', blob, 'image.jpg');
+      fetch('/detect_color', { method: 'POST', body: formData })
+        .then(response => response.text())
+        .then(text => {
+          result.textContent = text;
+        })
+        .catch(error => {
+          console.error(error);
+        });
+    });
+    
+  });
+  
+  // Draw the red circle
+  video.addEventListener('loadedmetadata', () => {
+    drawRedCircle();
+  });
+  
+  // Update overlay to always show the red circle in the center
+  video.addEventListener('play', () => {
+    const draw = () => {
+      if (video.paused || video.ended) {
+        return;
+      }
+      drawRedCircle();
+      requestAnimationFrame(draw);
+    };
+    requestAnimationFrame(draw);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+Flask
+opencv-python
+gunicorn
+opencv-python
+numpy
+scipy
+sounddevice
+soundfile
+playsound
+pygame
+flask
